@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paper Desk A vs B</title><style>
+body{font-family:system-ui,sans-serif;background:#0f1117;color:#e6e6e6;margin:0;padding:16px;max-width:1100px;margin:auto}
+.b{background:#3a2d00;color:#ffd166;padding:6px 10px;border-radius:6px;display:inline-block}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:700px){.g{grid-template-columns:1fr}}
+.c{background:#181b24;border-radius:10px;padding:14px}h2{margin:0 0 8px}td,th{padding:3px 6px;text-align:left;font-size:13px}
+.k{font-size:28px;font-weight:700}.pos{color:#4ade80}.neg{color:#f87171}small{color:#999}canvas{width:100%;height:260px}
+</style></head><body>
+<h1>Paper Desk A vs Desk B</h1><span class="b">PRACTICE MODE — FAKE MONEY. Compared by % return, not dollars.</span>
+<p><small id="u"></small></p>
+<div class="c"><canvas id="ch" width="1060" height="260"></canvas><small><span style="color:#60a5fa">■ Desk A</span> (from US$44.82) &nbsp; <span style="color:#f59e0b">■ Desk B</span> (from US$1,000) — % return</small></div>
+<div class="g" id="g"></div>
+<script>
+const f=(x,d=2)=>x==null?'—':(+x).toFixed(d), cl=x=>x>0?'pos':x<0?'neg':'', t=s=>s?new Date(s*1000).toLocaleString('en-AU',{timeZone:'Asia/Manila',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+function card(n,d,desc){return `<div class="c"><h2>${n}</h2><small>${desc}</small>
+<div class="k ${cl(d.ret_pct)}">${d.ret_pct>0?'+':''}${f(d.ret_pct)}%</div>
+<table><tr><td>Closed trades</td><td>${d.n}</td></tr><tr><td>Win rate</td><td>${f(d.win_rate,1)}%</td></tr>
+<tr><td>Avg win</td><td class=pos>${f(d.avg_win)}%</td></tr><tr><td>Avg loss</td><td class=neg>${f(d.avg_loss)}%</td></tr>
+<tr><td>Open positions</td><td>${d.open}</td></tr><tr><td>Last closed trade</td><td>${t(d.last_trade)}</td></tr>
+<tr><td>Halted day</td><td>${d.halted_day||'—'}</td></tr></table>
+${(d.positions||[]).length?'<h3>Open</h3><table>'+d.positions.map(p=>`<tr><td>${p.sym}</td><td class=${cl(p.pct)}>${f(p.pct)}%</td><td>${p.tp1?'half taken':''}</td></tr>`).join('')+'</table>':''}
+<h3>Recent trades (% per trade)</h3><table>${d.trades.map(x=>`<tr><td>${t(x.closed)}</td><td>${x.sym}</td><td class=${cl(x.pct)}>${f(x.pct)}%</td><td><small>${x.reason}</small></td></tr>`).join('')}</table></div>`}
+function draw(A,B){const c=document.getElementById('ch'),g=c.getContext('2d');g.clearRect(0,0,c.width,c.height);
+const all=[...A.curve,...B.curve];if(!all.length)return;const t0=Math.min(...all.map(p=>p[0])),t1=Math.max(Date.now()/1000,...all.map(p=>p[0]));
+let lo=Math.min(0,...all.map(p=>p[1])),hi=Math.max(0,...all.map(p=>p[1]));const X=v=>40+(v-t0)/(t1-t0||1)*(c.width-50),Y=v=>c.height-20-(v-lo)/(hi-lo||1)*(c.height-30);
+g.strokeStyle='#444';g.beginPath();g.moveTo(40,Y(0));g.lineTo(c.width,Y(0));g.stroke();g.fillStyle='#999';g.fillText(f(hi,0)+'%',2,12);g.fillText(f(lo,0)+'%',2,c.height-20);
+for(const[s,col]of[[A,'#60a5fa'],[B,'#f59e0b']]){const pts=[...s.curve,[t1,s.ret_pct]];g.strokeStyle=col;g.lineWidth=2;g.beginPath();pts.forEach((p,i)=>i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1])));g.stroke();}}
+async function go(){const d=await (await fetch('compare.json?'+Date.now())).json();
+document.getElementById('u').textContent='Updated '+d.updated_manila+' · page auto-refreshes every 60s';
+document.getElementById('g').innerHTML=card('Desk A',d.A,'Original desk: 5-min volume-spike breakout on new pairs, TP 15% / SL 7%, 45-min time stop.')+card('Desk B',d.B,'Independent desk: trend-pullback on pairs ≥6h old & ≥$40k liquidity, volatility-sized stops, half off at 1.5R then trail; AMM price-impact + fee + latency + MEV costs.');draw(d.A,d.B)}
+go();setInterval(go,60000);
+</script></body></html>
